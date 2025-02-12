@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>哥哥的班次表</title>
+    <style>
+        /* 保持原有样式不变 */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+
+        label {
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        input[type="date"] {
+            padding: 5px;
+            margin-bottom: 20px;
+        }
+
+        #annual-shift-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .month-table {
+            border-collapse: collapse;
+            margin: 10px;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .month-table caption {
+            font-weight: bold;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .month-table th,
+        .month-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            min-width: 50px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .month-table th {
+            background: #f8f9fa;
+        }
+
+        .weekend {
+            background-color: #EDF2FA;
+        }
+
+        .shift {
+            font-size: 0.9em;
+            color: #666;
+            display: block;
+            margin-top: 5px;
+        }
+
+        #shift-result {
+            margin: 15px 0;
+            font-size: 1.1em;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+   
+    <h1>福福的奋斗日历</h1>
+    <label for="date-picker">快速查询日期：</label>
+    <input type="date" id="date-picker" min="2025-01-01" max="2035-12-31">
+    <div id="shift-result"></div>
+    <div id="annual-shift-container"></div>
+
+    <script>
+          const sweetSentences = [
+            "哥哥今天也要元气满满哦！记得想我～💕",
+            "哇，这个班次不错嘛！下班带好吃的回来呀～😋",
+            "认真工作的哥哥最帅了！今晚给你按摩💆♂️",
+            "夜班要注意身体呀，下班了要吃点宵夜🍱 不能饿肚子喔",
+            "休息的日子要好好休息哦～🛌",
+            "早班日出好浪漫，可惜你只能看机器啦🌄",
+            "这个班表安排深得朕心，赏香吻一个😘",
+            "上班不许看漂亮妹妹！下班只能看我👀",
+            "今天又是为小家奋斗的一天呢，加油鸭！🦆",
+            "白班虽然辛苦，但有我在等你回家🏠",
+            `猜猜明天什么日子？是我们相遇的第${Math.floor((new Date()-new Date('2020-05-20'))/86400000)}天呀～`
+        ];
+
+        
+        const shiftOrder = ['休息', '白班', '夜班', '早班'];
+        const startYear = 2025;
+        const baseDate = new Date('2025-01-01');
+
+        // 日期选择功能（支持到2035年）
+        document.getElementById('date-picker').addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const diffDays = Math.floor((selectedDate - baseDate) / (1000 * 3600 * 24));
+            const shiftIndex = (diffDays % shiftOrder.length + shiftOrder.length) % shiftOrder.length;
+            const shift = shiftOrder[shiftIndex];
+
+            // 筛选相关句子
+            const filtered = sweetSentences.filter(s => s.includes(shift));
+            const available = filtered.length ? filtered : sweetSentences;
+            const randomIndex = Math.floor(Math.random() * available.length);
+            
+            // 处理动态内容
+            const daysSinceMeeting = Math.floor((new Date() - new Date('2020-05-20')) / 86400000);
+            let dynamicSentence = available[randomIndex].replace(/\${days}/g, daysSinceMeeting);
+            
+            document.getElementById('shift-result').innerHTML = 
+                `📅${this.value} 班次：${shift}<br>💌${dynamicSentence}`;
+        });
+
+
+        // 生成2025年日历（保持原样）
+        function generateCalendar() {
+    const container = document.getElementById('annual-shift-container');
+    let overallDiffDays = 0; // 新增变量用于记录从baseDate开始累计的天数
+    for (let month = 0; month < 12; month++) {
+        const table = document.createElement('table');
+        table.className ='month-table';
+
+        const caption = table.createCaption();
+        caption.textContent = new Date(startYear, month).toLocaleDateString('zh-CN', {
+            year: 'numeric',
+            month: 'long'
+        });
+
+        const headerRow = table.insertRow();
+        ['日', '一', '二', '三', '四', '五', '六'].forEach(day => {
+            const th = document.createElement('th');
+            th.textContent = day;
+            headerRow.appendChild(th);
+        });
+
+        const firstDay = new Date(startYear, month, 1);
+        const lastDay = new Date(startYear, month + 1, 0);
+        let currentDate = new Date(firstDay);
+
+        let row = table.insertRow();
+
+        for (let i = 0; i < firstDay.getDay(); i++) {
+            row.insertCell();
+        }
+
+        while (currentDate <= lastDay) {
+            if (row.cells.length === 7) {
+                row = table.insertRow();
+            }
+
+            const cell = row.insertCell();
+            const day = currentDate.getDate();
+
+            // 这里使用累计的overallDiffDays来计算班次
+            const shiftIndex = overallDiffDays % shiftOrder.length; 
+            const shift = shiftOrder[shiftIndex];
+
+            if ([0, 6].includes(currentDate.getDay())) {
+                cell.classList.add('weekend');
+            }
+
+            cell.innerHTML = `
+                <div>${day}</div>
+                <div class="shift">${shift}</div>
+            `;
+
+            currentDate.setDate(currentDate.getDate() + 1);
+            overallDiffDays++; // 每次循环递增天数
+        }
+
+        while (row.cells.length < 7) {
+            row.insertCell();
+        }
+
+        container.appendChild(table);
+    }
+}
+
+        generateCalendar();
+
+         // 页面加载初始化
+         window.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date-picker').value = today;
+            document.getElementById('date-picker').dispatchEvent(new Event('change'));
+            generateCalendar();
+        });
+    </script>
+</body>
+</html>
